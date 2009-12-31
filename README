@@ -1,0 +1,9 @@
+This software is very much a work in progress. It is not all that useful
+at this point except perhaps as a reference or a foundation to build
+a more substantial engine on top of.
+
+So, what is it? Octoshark is a 3D graphics engine for Clojure. It relies
+on JOGL and targets OpenGL 2.1. Right now I'm using it as a learning
+vehicle to gain experience with Clojure, OpenGL, Emacs, and SLIME. At
+some point I plan to evolve this into a full game engine. And if I'm
+lucky, I'll have a game to show off in the end.
