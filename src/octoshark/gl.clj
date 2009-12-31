@@ -7,8 +7,10 @@
 	   (javax.media.opengl GLCanvas GLEventListener GL GLAutoDrawable)
 	   (javax.media.opengl.glu GLU)
 	   (com.sun.opengl.util Animator))
-  (:use octoshark.math.matrix
+  (:use octoshark.material
+	octoshark.math.matrix
 	octoshark.mesh
+	octoshark.sg
 	octoshark.texture))
 
 (def glu (new GLU))
@@ -22,7 +24,8 @@
 (def plane (transform-mesh (rotation-matrix (/ Math/PI 2) 0 0) unit-plane))
 
 (def display-fn-list (ref '()))
-(def mytex (ref nil))
+
+(def sg-node-table (ref {}))
 
 (defn add-display-fn
   "Run a function the next time JOGL redraws the scene."
@@ -58,6 +61,34 @@
 		      snapshot))]
     (f gl)))
 
+(defn add-resource
+  "Register an id -> resource mapping. If a resource already
+  exists with the same id, it is overwritten."
+  [table id res]
+  (dosync (alter table assoc id (ref (assoc res :id id)))))
+
+(defn update-resource
+  "Updates the resource associated with a given id. If a resource
+  already exists with the same id, an exception is thrown."
+  [table id res]
+  (dosync (ref-set (@table id) (assoc res :id id))))
+
+(defn remove-resource
+  "Removes a given resource from the resource table."
+  [table id]
+  (dosync (alter table dissoc id)))
+
+(defn add-object-to-scene
+  ([id mesh]
+     (add-object-to-scene id mesh nil))
+  
+  ([id mesh material]
+     (let [child (create-sg-node mesh material identity-matrix)]
+       (add-resource sg-node-table id child)
+       (update-resource sg-node-table
+			:root
+			(add-sg-child @(sg-node-table :root) id)))))
+
 (.addGLEventListener
  canvas
  (proxy [GLEventListener] []
@@ -71,7 +102,7 @@
 	(.glLoadIdentity gl)
 	(.glTranslatef gl 0 0 0)
 
-	(upload-mesh gl plane @mytex))))
+	(render-sg gl sg-node-table :root))))
 
    (displayChanged [drawable m d])
 
@@ -85,8 +116,13 @@
       ;(.glEnable GL/GL_DEPTH_TEST)
       ;(.glDepthFunc GL/GL_LEQUAL)
       ;(.glHint GL/GL_PERSPECTIVE_CORRECTION_HINT GL/GL_NICEST))
-    (let [tex (load-texture-from-disk "../../data/brick.jpg")]
-      (dosync (ref-set mytex tex)))
+    
+    (let [tex (load-texture-from-disk "../../data/brick.jpg")
+	  mat (create-material tex)
+	  root-node (create-sg-node identity-matrix [])]
+      (add-resource sg-node-table :root root-node)
+      (add-object-to-scene :test-plane plane mat))
+    
     (.addKeyListener
      drawable
      (proxy [KeyListener] []

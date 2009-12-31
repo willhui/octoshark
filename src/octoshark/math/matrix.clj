@@ -81,6 +81,19 @@
 	      (matrix-mul (rotation-matrix-y angle-y)
 			  (rotation-matrix-x angle-x))))
 
+(defn to-gl-matrix-form
+  "Convert matrix into format suitable for OpenGL API calls."
+  [m]
+  (into-array Float/TYPE (apply concat (for [i (range 4)]
+					 (matrix-col m i)))))
+
+(deftest test-to-gl-matrix-form
+  (let [expect (into-array Float/TYPE [1 0 0 0, 0 1 0 0, 0 0 1 0, 3 4 5 1])
+	actual (to-gl-matrix-form (translation-matrix 3 4 5))]
+    (doseq [i (range (alength expect))]
+      (is (= (aget expect i)
+	     (aget actual i))))))
+
 (deftest test-matrix-mul-returns-vec
   (is (vector? (matrix-mul identity-matrix identity-matrix))))
 
